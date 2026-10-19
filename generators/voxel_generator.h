@@ -133,7 +133,7 @@ public:
 	};
 
 	struct ShaderOutput {
-		enum Type { TYPE_SDF, TYPE_SINGLE_TEXTURE, TYPE_TYPE };
+		enum Type { TYPE_SDF, TYPE_SINGLE_TEXTURE, TYPE_TYPE, TYPE_TEXTURE_INDEX };
 		Type type;
 	};
 

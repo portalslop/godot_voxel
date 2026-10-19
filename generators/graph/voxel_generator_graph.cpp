@@ -2017,7 +2017,7 @@ bool VoxelGeneratorGraph::get_shader_source(ShaderSourceData &out_data) const {
 				out.type = ShaderOutput::TYPE_SDF;
 				break;
 			case pg::ShaderOutput::TYPE_SINGLE_TEXTURE:
-				out.type = ShaderOutput::TYPE_SINGLE_TEXTURE;
+				out.type = _texture_mode == TEXTURE_MODE_SINGLE ? ShaderOutput::TYPE_TEXTURE_INDEX : ShaderOutput::TYPE_SINGLE_TEXTURE;
 				break;
 			case pg::ShaderOutput::TYPE_TYPE:
 				out.type = ShaderOutput::TYPE_TYPE;

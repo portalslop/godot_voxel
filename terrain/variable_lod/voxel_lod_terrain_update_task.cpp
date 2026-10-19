@@ -26,7 +26,7 @@ namespace zylann::voxel {
 namespace {
 
 inline Vector3i get_block_center(Vector3i pos, int bs, int lod) {
-	return (pos << lod) * bs + Vector3iUtil::create(bs / 2);
+	return (pos << lod) * bs + Vector3iUtil::create((bs << lod) / 2);
 }
 
 void init_sparse_octree_priority_dependency(
@@ -44,6 +44,7 @@ void init_sparse_octree_priority_dependency(
 	dep.world_position = to_vec3f(volume_transform.xform(voxel_pos));
 	const float transformed_block_radius =
 			volume_transform.basis.xform(Vector3(block_radius, block_radius, block_radius)).length();
+	dep.radius = transformed_block_radius;
 
 	// Distance beyond which it is safe to drop a block without risking to block LOD subdivision.
 	// This does not depend on viewer's view distance, but on LOD precision instead.

@@ -1,4 +1,5 @@
 #include "threaded_task_runner.h"
+#include <algorithm>
 #include "../dstack.h"
 #include "../godot/classes/time.h"
 #include "../profiling.h"
@@ -205,9 +206,19 @@ void ThreadedTaskRunner::thread_func(ThreadData &data) {
 				// Move tasks from the staging queue.
 				// Lock with minimal risk of blocking the main thread, it should be very short.
 				if (_staged_tasks_mutex.try_lock()) {
-					append_array(_tasks, _staged_tasks);
-					_staged_tasks.clear();
+					StdVector<TaskItem> staged;
+					staged.swap(_staged_tasks);
 					_staged_tasks_mutex.unlock();
+					for (TaskItem &item : staged) {
+						item.cached_priority = item.task->get_priority();
+						_tasks.insert(
+								std::upper_bound(_tasks.begin(), _tasks.end(), item,
+										[](const TaskItem &a, const TaskItem &b) {
+											return a.cached_priority < b.cached_priority;
+										}),
+								item
+						);
+					}
 				}
 
 				// Pick best tasks from the prioritized queue

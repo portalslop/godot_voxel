@@ -206,7 +206,7 @@ void register_noise_nodes(Span<NodeType> types) {
 				ctx.add_format(
 						"float wx = {};\n"
 						"float wy = {};\n"
-						"fnlDomainWarp2D(warp_state, wx, wy);\n",
+						"fnlDomainWarp2D(warp_state, wx, wy);\n"
 						"{} = fnlGetNoise2D(state, wx, wy);\n",
 						ctx.get_input_name(0),
 						ctx.get_input_name(1),
@@ -377,7 +377,7 @@ void register_noise_nodes(Span<NodeType> types) {
 				ctx.add_format(
 						"float wx = {};\n"
 						"float wy = {};\n"
-						"fnlDomainWarp2D(warp_state, wx, wy);\n",
+						"fnlDomainWarp2D(warp_state, wx, wy);\n"
 						"{} = fnlGetNoise2D(state, wx, wy);\n",
 						ctx.get_input_name(0),
 						ctx.get_input_name(1),

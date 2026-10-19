@@ -19,6 +19,7 @@ struct PriorityDependency {
 		// This vector is never resized after the instance is created. It is just big enough to have room for all
 		// viewers.
 		StdVector<Vector3f> viewers;
+		StdVector<unsigned int> view_distances;
 		// Use this count instead of `viewers.size()`. Can change, but will always be <= `viewers.size()`
 		std::atomic_uint32_t viewers_count;
 		float highest_view_distance = 999999;
@@ -39,6 +40,7 @@ struct PriorityDependency {
 	// Position relative to the same space as viewers.
 	// TODO Won't update while in queue. Can it be bad?
 	Vector3f world_position;
+	float radius = 0.f;
 
 	// If the closest viewer is further away than this distance, the request can be cancelled as not worth it
 	// TODO Move away from this in favor of cancellation tokens,

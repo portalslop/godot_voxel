@@ -23,6 +23,7 @@
 #include "../../util/godot/classes/shader.h"
 #include "../../util/godot/classes/viewport.h"
 #include "../../util/godot/core/array.h"
+#include "../../util/godot/core/callable_mp.h"
 #include "../../util/godot/core/string.h"
 #include "../../util/math/color.h"
 #include "../../util/math/conv.h"
@@ -207,10 +208,23 @@ void VoxelLodTerrain::set_material(Ref<Material> p_material) {
 		return;
 	}
 
+	if (_material.is_valid()) {
+		_material->disconnect(
+				VoxelStringNames::get_singleton().changed, callable_mp(this, &VoxelLodTerrain::_on_material_changed)
+		);
+	}
 	// TODO Update existing block surfaces
 	_material = p_material;
+	if (_material.is_valid()) {
+		_material->connect(
+				VoxelStringNames::get_singleton().changed, callable_mp(this, &VoxelLodTerrain::_on_material_changed)
+		);
+	}
+	_on_material_changed();
+}
 
-	Ref<ShaderMaterial> shader_material = p_material;
+void VoxelLodTerrain::_on_material_changed() {
+	Ref<ShaderMaterial> shader_material = _material;
 	const unsigned int lod_count = get_lod_count();
 
 #ifdef TOOLS_ENABLED
@@ -274,12 +288,12 @@ void VoxelLodTerrain::set_material(Ref<Material> p_material) {
 		for (unsigned int lod_index = 0; lod_index < lod_count; ++lod_index) {
 			VoxelMeshMap<VoxelMeshBlockVLT> &map = _mesh_maps_per_lod[lod_index];
 
-			map.for_each_block([&p_material](VoxelMeshBlockVLT &block) { //
+			map.for_each_block([this](VoxelMeshBlockVLT &block) { //
 				if (!block.has_mesh()) {
 					// No visuals loaded (collision only?)
 					return;
 				}
-				block.set_material_override(p_material);
+				block.set_material_override(_material);
 			});
 		}
 	}

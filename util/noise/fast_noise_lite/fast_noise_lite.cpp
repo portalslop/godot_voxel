@@ -374,7 +374,7 @@ void ZN_FastNoiseLite::_bind_methods() {
 					Variant::INT,
 					"cellular_return_type",
 					PROPERTY_HINT_ENUM,
-					"CellValue,Distance,Distance2,Distance2Add,Distance2Sub,Distance2Mul,Distance2Div"
+					"CellValue,Distance,Distance2,Distance2Add,Distance2Sub,Distance2Mul,Distance2Div,Distance3Sub"
 			),
 			"set_cellular_return_type",
 			"get_cellular_return_type"
@@ -422,6 +422,7 @@ void ZN_FastNoiseLite::_bind_methods() {
 	BIND_ENUM_CONSTANT(CELLULAR_RETURN_DISTANCE_2_SUB);
 	BIND_ENUM_CONSTANT(CELLULAR_RETURN_DISTANCE_2_MUL);
 	BIND_ENUM_CONSTANT(CELLULAR_RETURN_DISTANCE_2_DIV);
+	BIND_ENUM_CONSTANT(CELLULAR_RETURN_DISTANCE_3_SUB);
 }
 
 } // namespace zylann

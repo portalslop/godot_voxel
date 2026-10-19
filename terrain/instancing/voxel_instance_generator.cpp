@@ -235,13 +235,12 @@ inline Vector4f unpack_weights(const uint32_t packed_weights) {
 	return weights;
 }
 
-inline bool triangle_contains_enough_material_interpolated(
+inline float triangle_material_weight(
 		const Span<const TexAttrib> attrib_array,
 		const Span<const int32_t> mesh_indices,
 		const Span<const float> barycentrics,
 		const unsigned int instance_index,
 		const unsigned int ii0,
-		const float threshold,
 		const uint32_t material_mask
 ) {
 	const uint32_t vi0 = mesh_indices[ii0 + 0];
@@ -270,7 +269,7 @@ inline bool triangle_contains_enough_material_interpolated(
 			vertex_contains_enough_material({ packed_indices, packed_weights1 }, 0, material_mask) ||
 			vertex_contains_enough_material({ packed_indices, packed_weights2 }, 0, material_mask);
 	if (!found_any) {
-		return false;
+		return 0.f;
 	}
 
 	// Unpack, normalize and compare
@@ -289,17 +288,15 @@ inline bool triangle_contains_enough_material_interpolated(
 			barycentrics[instance_index * 3 + 2]
 	);
 
+	float weight = 0.f;
 	for (unsigned int i = 0; i < 4; ++i) {
 		const uint32_t vmat_index = (packed_indices >> (i * 8)) & 0xff;
 		if (((1 << vmat_index) & material_mask) != 0) {
-			const float weight = math::interpolate_triangle(weights0[i], weights1[i], weights2[i], bary);
-			if (weight >= threshold) {
-				return true;
-			}
+			weight = math::max(weight, math::interpolate_triangle(weights0[i], weights1[i], weights2[i], bary));
 		}
 	}
 
-	return false;
+	return weight;
 }
 
 // Filter out by voxel materials
@@ -314,6 +311,7 @@ void filter_instances_by_voxel_materials(
 		// In vertex emission mode, index in the mesh vertex array.
 		// In other modes, index of the first triangle index in the mesh's index array.
 		StdVector<uint32_t> &instance_indices,
+		StdVector<float> &instance_weights,
 
 		Span<const int32_t> mesh_indices,
 		Span<const TexAttrib> mesh_tex_attrib_array,
@@ -323,21 +321,31 @@ void filter_instances_by_voxel_materials(
 ) {
 	ZN_PROFILE_SCOPE();
 
+	instance_weights.resize(instance_positions.size());
+
 	switch (emit_mode) {
 		case VoxelInstanceGenerator::EMIT_FROM_VERTICES: {
-			const unsigned int weight_threshold_i =
-					math::clamp(static_cast<unsigned int>(weight_threshold * 255.f), 0u, 255u);
 			// Indices are vertices
 			for (unsigned int instance_index = 0; instance_index < instance_positions.size();) {
 				const unsigned int vi = instance_indices[instance_index];
 				const TexAttrib attrib = mesh_tex_attrib_array[vi];
-				if (vertex_contains_enough_material(attrib, weight_threshold_i, material_mask)) {
+				const Vector4f weights = linear_normalize(unpack_weights(attrib.packed_weights));
+				float weight = 0.f;
+				for (unsigned int i = 0; i < 4; ++i) {
+					const uint32_t vmat_index = (attrib.packed_indices >> (i * 8)) & 0xff;
+					if (((1 << vmat_index) & material_mask) != 0) {
+						weight = math::max(weight, weights[i]);
+					}
+				}
+				if (weight >= weight_threshold) {
+					instance_weights[instance_index] = weight;
 					instance_index += 1;
 				} else {
 					// Remove instance
 					unordered_remove(instance_positions, instance_index);
 					unordered_remove(instance_normals, instance_index);
 					unordered_remove(instance_indices, instance_index);
+					unordered_remove(instance_weights, instance_index);
 				}
 			}
 		} break;
@@ -354,22 +362,23 @@ void filter_instances_by_voxel_materials(
 			const Span<const float> barycentrics_s = to_span(instance_barycentrics);
 			for (unsigned int instance_index = 0; instance_index < instance_positions.size();) {
 				const uint32_t ii0 = instance_indices[instance_index];
-				// if (L::triangle_contains_enough_material_rough(
-				if (triangle_contains_enough_material_interpolated(
-							mesh_tex_attrib_array,
-							mesh_indices,
-							barycentrics_s,
-							instance_index,
-							ii0,
-							weight_threshold,
-							material_mask
-					)) {
+				const float weight = triangle_material_weight(
+						mesh_tex_attrib_array,
+						mesh_indices,
+						barycentrics_s,
+						instance_index,
+						ii0,
+						material_mask
+				);
+				if (weight >= weight_threshold) {
+					instance_weights[instance_index] = weight;
 					instance_index += 1;
 				} else {
 					// Remove instance
 					unordered_remove(instance_positions, instance_index);
 					unordered_remove(instance_normals, instance_index);
 					unordered_remove(instance_indices, instance_index);
+					unordered_remove(instance_weights, instance_index);
 
 					unordered_remove(instance_barycentrics, instance_index * 3 + 2);
 					unordered_remove(instance_barycentrics, instance_index * 3 + 1);
@@ -1001,12 +1010,14 @@ void VoxelInstanceGenerator::generate_transforms(
 	// static thread_local StdVector<float> g_noise_graph_output_cache;
 
 	static thread_local StdVector<float> g_barycentrics_cache;
+	static thread_local StdVector<float> g_weight_cache;
 
 	StdVector<Vector3f> &vertex_cache = g_vertex_cache;
 	StdVector<Vector3f> &normal_cache = g_normal_cache;
 	StdVector<uint32_t> &index_cache = g_index_cache;
 
 	StdVector<float> &barycentrics = g_barycentrics_cache;
+	StdVector<float> &weight_cache = g_weight_cache;
 
 	vertex_cache.clear();
 	normal_cache.clear();
@@ -1128,6 +1139,7 @@ void VoxelInstanceGenerator::generate_transforms(
 				normal_cache,
 				barycentrics,
 				index_cache,
+				weight_cache,
 				mesh.indices,
 				mesh.texture_data,
 				_voxel_material_filter_threshold,
@@ -1226,6 +1238,9 @@ void VoxelInstanceGenerator::generate_transforms(
 					unordered_remove(vertex_cache, i);
 					unordered_remove(normal_cache, i);
 					unordered_remove(noise_cache, i);
+					if (voxel_material_filter_enabled) {
+						unordered_remove(weight_cache, i);
+					}
 					// We don't use the index cache after this... for now
 					// if (index_cache_used) {
 					// 	unordered_remove(index_cache, i);
@@ -1243,6 +1258,9 @@ void VoxelInstanceGenerator::generate_transforms(
 					unordered_remove(vertex_cache, i);
 					unordered_remove(normal_cache, i);
 					unordered_remove(noise_cache, i);
+					if (voxel_material_filter_enabled) {
+						unordered_remove(weight_cache, i);
+					}
 					// We don't use the index cache after this... for now
 					// if (index_cache_used) {
 					// 	unordered_remove(index_cache, i);
@@ -1424,6 +1442,10 @@ void VoxelInstanceGenerator::generate_transforms(
 				// Multiplied noise because it gives more pronounced results
 				const float n = math::clamp(noise_cache[vertex_index] * 2.f, 0.f, 1.f);
 				r *= Math::lerp(1.f, n, _noise_on_scale);
+			}
+
+			if (voxel_material_filter_enabled) {
+				r *= (weight_cache[vertex_index] - _voxel_material_filter_threshold) / math::max(1.f - _voxel_material_filter_threshold, 0.0001f);
 			}
 
 			const float scale = scale_min + scale_range * r;

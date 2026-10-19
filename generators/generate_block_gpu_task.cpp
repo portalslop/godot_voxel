@@ -338,7 +338,7 @@ void convert_gpu_output_uint(
 ) {
 	ZN_PROFILE_SCOPE();
 
-	const VoxelBuffer::Depth depth = dst.get_channel_depth(VoxelBuffer::CHANNEL_SDF);
+	const VoxelBuffer::Depth depth = dst.get_channel_depth(channel_index);
 	StdVector<uint8_t> &tls_temp = get_temporary_conversion_memory_tls();
 
 	switch (depth) {
@@ -406,6 +406,10 @@ void GenerateBlockGPUTaskResult::convert_to_voxel_buffer(VoxelBuffer &dst) {
 
 		case VoxelGenerator::ShaderOutput::TYPE_SINGLE_TEXTURE:
 			convert_gpu_output_single_texture(dst, src_data_f, _box);
+			break;
+
+		case VoxelGenerator::ShaderOutput::TYPE_TEXTURE_INDEX:
+			convert_gpu_output_uint(dst, src_data_f, _box, VoxelBuffer::CHANNEL_INDICES);
 			break;
 
 		case VoxelGenerator::ShaderOutput::TYPE_TYPE:

@@ -102,7 +102,8 @@ public:
         CellularReturnType_Distance2Add,
         CellularReturnType_Distance2Sub,
         CellularReturnType_Distance2Mul,
-        CellularReturnType_Distance2Div
+        CellularReturnType_Distance2Div,
+        CellularReturnType_Distance3Sub
     };
 
     enum DomainWarpType
@@ -1504,6 +1505,7 @@ public:
 
         float distance0 = 1e10f;
         float distance1 = 1e10f;
+        float distance2 = 1e10f;
         int closestHash = 0;
 
         float cellularJitter = 0.43701595f * mCellularJitterModifier;
@@ -1530,6 +1532,7 @@ public:
 
                     float newDistance = vecX * vecX + vecY * vecY;
 
+                    distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                     distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                     if (newDistance < distance0)
                     {
@@ -1556,6 +1559,7 @@ public:
 
                     float newDistance = FastAbs(vecX) + FastAbs(vecY);
 
+                    distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                     distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                     if (newDistance < distance0)
                     {
@@ -1582,6 +1586,7 @@ public:
 
                     float newDistance = (FastAbs(vecX) + FastAbs(vecY)) + (vecX * vecX + vecY * vecY);
 
+                    distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                     distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                     if (newDistance < distance0)
                     {
@@ -1602,6 +1607,7 @@ public:
             if (mCellularReturnType >= CellularReturnType_Distance2)
             {
                 distance1 = FastSqrt(distance1);
+                distance2 = FastSqrt(distance2);
             }
         }
 
@@ -1621,6 +1627,8 @@ public:
             return distance1 * distance0 * 0.5f - 1;
         case CellularReturnType_Distance2Div:
             return distance0 / distance1 - 1;
+        case CellularReturnType_Distance3Sub:
+            return distance2 - distance0 - 1;
         default:
             return 0;
         }
@@ -1635,6 +1643,7 @@ public:
 
         float distance0 = 1e10f;
         float distance1 = 1e10f;
+        float distance2 = 1e10f;
         int closestHash = 0;
 
         float cellularJitter = 0.39614353f * mCellularJitterModifier;
@@ -1666,6 +1675,7 @@ public:
 
                         float newDistance = vecX * vecX + vecY * vecY + vecZ * vecZ;
 
+                        distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                         if (newDistance < distance0)
                         {
@@ -1699,6 +1709,7 @@ public:
 
                         float newDistance = FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ);
 
+                        distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                         if (newDistance < distance0)
                         {
@@ -1732,6 +1743,7 @@ public:
 
                         float newDistance = (FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ)) + (vecX * vecX + vecY * vecY + vecZ * vecZ);
 
+                        distance2 = FastMax(FastMin(distance2, newDistance), distance1);
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
                         if (newDistance < distance0)
                         {
@@ -1756,6 +1768,7 @@ public:
             if (mCellularReturnType >= CellularReturnType_Distance2)
             {
                 distance1 = FastSqrt(distance1);
+                distance2 = FastSqrt(distance2);
             }
         }
 
@@ -1775,6 +1788,8 @@ public:
             return distance1 * distance0 * 0.5f - 1;
         case CellularReturnType_Distance2Div:
             return distance0 / distance1 - 1;
+        case CellularReturnType_Distance3Sub:
+            return distance2 - distance0 - 1;
         default:
             return 0;
         }

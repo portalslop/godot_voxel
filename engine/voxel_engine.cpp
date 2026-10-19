@@ -65,6 +65,7 @@ VoxelEngine::VoxelEngine(Config config) {
 	_world.shared_priority_dependency = make_shared_instance<PriorityDependency::ViewersData>();
 	// Give initial capacity to make invalidation less likely
 	_world.shared_priority_dependency->viewers.resize(64);
+	_world.shared_priority_dependency->view_distances.resize(64);
 
 	ZN_PRINT_VERBOSE(format("Size of LoadBlockDataTask: {}", sizeof(LoadBlockDataTask)));
 	ZN_PRINT_VERBOSE(format("Size of SaveBlockDataTask: {}", sizeof(SaveBlockDataTask)));
@@ -360,6 +361,7 @@ void VoxelEngine::sync_viewers_task_priority_data() {
 		// TODO We can avoid the invalidation by using an atomic size or memory barrier?
 		_world.shared_priority_dependency = make_shared_instance<PriorityDependency::ViewersData>();
 		_world.shared_priority_dependency->viewers.resize(viewer_count);
+		_world.shared_priority_dependency->view_distances.resize(viewer_count);
 	}
 
 	PriorityDependency::ViewersData &dep = *_world.shared_priority_dependency;
@@ -368,6 +370,7 @@ void VoxelEngine::sync_viewers_task_priority_data() {
 	unsigned int max_distance = 0;
 	_world.viewers.for_each_value([&i, &max_distance, &dep](Viewer &viewer) {
 		dep.viewers[i] = to_vec3f(viewer.world_position);
+		dep.view_distances[i] = viewer.view_distances.max();
 		max_distance = math::max(max_distance, viewer.view_distances.max());
 		++i;
 	});

@@ -41,6 +41,10 @@ Interval get_fnl_cellular_range_2d(const ZN_FastNoiseLite &noise) {
 
 	// Value mode must be handled separately.
 
+	if (noise.get_cellular_return_type() == ZN_FastNoiseLite::CELLULAR_RETURN_DISTANCE_3_SUB) {
+		return Interval{ -1, 5 };
+	}
+
 	switch (noise.get_cellular_distance_function()) {
 		case ZN_FastNoiseLite::CELLULAR_DISTANCE_EUCLIDEAN:
 			switch (noise.get_cellular_return_type()) {

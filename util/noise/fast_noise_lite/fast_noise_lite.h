@@ -75,7 +75,8 @@ public:
 		CELLULAR_RETURN_DISTANCE_2_ADD = _FastNoise::CellularReturnType_Distance2Add,
 		CELLULAR_RETURN_DISTANCE_2_SUB = _FastNoise::CellularReturnType_Distance2Sub,
 		CELLULAR_RETURN_DISTANCE_2_MUL = _FastNoise::CellularReturnType_Distance2Mul,
-		CELLULAR_RETURN_DISTANCE_2_DIV = _FastNoise::CellularReturnType_Distance2Div
+		CELLULAR_RETURN_DISTANCE_2_DIV = _FastNoise::CellularReturnType_Distance2Div,
+		CELLULAR_RETURN_DISTANCE_3_SUB = _FastNoise::CellularReturnType_Distance3Sub
 	};
 
 	ZN_FastNoiseLite();
